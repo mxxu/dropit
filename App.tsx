@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { UploadCloud, FolderUp, FileUp, Trash2, Activity, LayoutGrid, List as ListIcon, Folder } from 'lucide-react';
+import { UploadCloud, FolderUp, FileUp, Trash2, Activity, LayoutGrid, List as ListIcon, Folder, Upload, CheckCircle2 } from 'lucide-react';
 import { FileNode, ViewMode } from './types';
 import { FileTree } from './components/FileTree';
 
@@ -8,6 +8,9 @@ const App: React.FC = () => {
   const [flatFiles, setFlatFiles] = useState<File[]>([]); 
   const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.LIST);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadComplete, setUploadComplete] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -16,6 +19,7 @@ const App: React.FC = () => {
   const processFiles = useCallback((files: FileList) => {
     const newStructure: FileNode[] = [];
     const newFlatFiles: File[] = [];
+    setUploadComplete(false); // Reset upload status on new selection
 
     Array.from(files).forEach((file) => {
       newFlatFiles.push(file);
@@ -99,6 +103,34 @@ const App: React.FC = () => {
   const clearFiles = () => {
     setFileStructure([]);
     setFlatFiles([]);
+    setUploadComplete(false);
+    setUploadProgress(0);
+  };
+
+  const handleUpload = async () => {
+    if (flatFiles.length === 0) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    // Simulate upload process
+    const totalSteps = 20;
+    for (let i = 0; i <= totalSteps; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network latency
+      setUploadProgress(Math.round((i / totalSteps) * 100));
+    }
+
+    setIsUploading(false);
+    setUploadComplete(true);
+    
+    // In a real app, you would send FormData here
+    /*
+    const formData = new FormData();
+    flatFiles.forEach(file => {
+      formData.append('files', file);
+    });
+    await fetch('/api/upload', { method: 'POST', body: formData });
+    */
   };
 
   return (
@@ -197,37 +229,84 @@ const App: React.FC = () => {
 
         {/* Action Bar */}
         {flatFiles.length > 0 && (
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
             <div className="flex items-center space-x-2 bg-slate-800/50 p-1 rounded-lg">
               <button 
                 onClick={() => setViewMode(ViewMode.LIST)}
                 className={`p-1.5 rounded-md transition-colors ${viewMode === ViewMode.LIST ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                title="List View"
               >
                 <ListIcon className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => setViewMode(ViewMode.GRID)}
                 className={`p-1.5 rounded-md transition-colors ${viewMode === ViewMode.GRID ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
             </div>
             
-            <button 
-              onClick={clearFiles}
-              className="text-xs text-red-400 hover:text-red-300 flex items-center px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-            >
-              <Trash2 className="w-3 h-3 mr-1.5" />
-              Clear All
-            </button>
+            <div className="flex items-center space-x-3 w-full md:w-auto">
+              <button 
+                onClick={handleUpload}
+                disabled={isUploading || uploadComplete}
+                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center shadow-lg ${
+                  uploadComplete 
+                    ? 'bg-green-600/20 text-green-400 cursor-default border border-green-600/50'
+                    : isUploading
+                      ? 'bg-blue-600/50 text-white cursor-wait'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
+                }`}
+              >
+                {uploadComplete ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Upload Complete
+                  </>
+                ) : isUploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                    Uploading... {uploadProgress}%
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload {flatFiles.length} Files
+                  </>
+                )}
+              </button>
+
+              <button 
+                onClick={clearFiles}
+                disabled={isUploading}
+                className="px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex items-center"
+                title="Clear All Files"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Content Area - Full width file list */}
-        <div className="w-full">
+        <div className="w-full relative">
+          {/* Progress Bar Overlay */}
+          {isUploading && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-slate-800 rounded-t-xl overflow-hidden z-10">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
           <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden min-h-[300px]">
              <div className="bg-slate-950/50 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
               <span className="font-semibold text-sm text-slate-300">File Structure</span>
+              <span className="text-xs text-slate-500 font-mono">
+                {flatFiles.length} items
+              </span>
             </div>
             <div className="p-2 overflow-y-auto max-h-[600px]">
               {fileStructure.length === 0 ? (
