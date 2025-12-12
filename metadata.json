@@ -1,5 +1,5 @@
 {
   "name": "StreamDrop - Smart File Manager",
-  "description": "A high-performance React application featuring file and folder uploads, directory structure visualization, and AI-powered file content analysis using Gemini.",
+  "description": "A high-performance React application featuring file and folder uploads and directory structure visualization.",
   "requestFramePermissions": []
 }

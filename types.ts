@@ -9,11 +9,6 @@ export interface FileNode {
   isOpen?: boolean; // For folder UI state
 }
 
-export interface AnalysisResult {
-  summary: string;
-  tags: string[];
-}
-
 export enum ViewMode {
   LIST = 'LIST',
   GRID = 'GRID'

@@ -1,16 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { UploadCloud, FolderUp, FileUp, Trash2, Activity, Bot, Zap, XCircle, LayoutGrid, List as ListIcon, Folder } from 'lucide-react';
+import { UploadCloud, FolderUp, FileUp, Trash2, Activity, LayoutGrid, List as ListIcon, Folder } from 'lucide-react';
 import { FileNode, ViewMode } from './types';
 import { FileTree } from './components/FileTree';
-import { analyzeFilesWithGemini } from './services/geminiService';
 
 const App: React.FC = () => {
   const [fileStructure, setFileStructure] = useState<FileNode[]>([]);
-  const [flatFiles, setFlatFiles] = useState<File[]>([]); // Keep flat reference for API
+  const [flatFiles, setFlatFiles] = useState<File[]>([]); 
   const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.LIST);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -102,21 +99,6 @@ const App: React.FC = () => {
   const clearFiles = () => {
     setFileStructure([]);
     setFlatFiles([]);
-    setAnalysisResult(null);
-  };
-
-  const handleAnalyze = async () => {
-    if (flatFiles.length === 0) return;
-    setAnalyzing(true);
-    setAnalysisResult(null);
-    try {
-      const result = await analyzeFilesWithGemini(flatFiles);
-      setAnalysisResult(result);
-    } catch (error) {
-      setAnalysisResult("An unexpected error occurred during analysis.");
-    } finally {
-      setAnalyzing(false);
-    }
   };
 
   return (
@@ -129,7 +111,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">StreamDrop</h1>
-            <p className="text-xs text-slate-500">React + Gemini File Manager</p>
+            <p className="text-xs text-slate-500">Fast File Manager</p>
           </div>
         </div>
 
@@ -150,49 +132,12 @@ const App: React.FC = () => {
                   {(flatFiles.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>API Status</span>
-                <span className={process.env.API_KEY ? "text-green-400" : "text-red-400"}>
-                  {process.env.API_KEY ? "Connected" : "No Key"}
-                </span>
-              </div>
             </div>
-          </div>
-
-          <div className="p-4 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-xl border border-indigo-500/20">
-             <h3 className="text-sm font-semibold text-indigo-300 mb-2 flex items-center">
-              <Bot className="w-4 h-4 mr-2" />
-              AI Insights
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Select files and let Gemini 2.5 Flash analyze the content, structure, or code.
-            </p>
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzing || flatFiles.length === 0}
-              className={`w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
-                analyzing || flatFiles.length === 0
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
-              }`}
-            >
-              {analyzing ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-3 h-3 mr-2" />
-                  Analyze Files
-                </>
-              )}
-            </button>
           </div>
         </div>
 
         <div className="mt-auto pt-6 text-[10px] text-slate-600 text-center">
-          Powered by React & Google Gemini
+          Powered by React
         </div>
       </aside>
 
@@ -278,15 +223,13 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Content Area - Split between List and Analysis */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* File List */}
+        {/* Content Area - Full width file list */}
+        <div className="w-full">
           <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden min-h-[300px]">
              <div className="bg-slate-950/50 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
               <span className="font-semibold text-sm text-slate-300">File Structure</span>
             </div>
-            <div className="p-2 overflow-y-auto max-h-[500px]">
+            <div className="p-2 overflow-y-auto max-h-[600px]">
               {fileStructure.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-slate-600">
                   <Folder className="w-8 h-8 mb-2 opacity-20" />
@@ -299,26 +242,6 @@ const App: React.FC = () => {
               )}
             </div>
           </div>
-
-          {/* Analysis Result Panel */}
-          {analysisResult && (
-            <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden min-h-[300px] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="bg-slate-950/50 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
-                <span className="font-semibold text-sm text-indigo-400 flex items-center">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Analysis Results
-                </span>
-                <button onClick={() => setAnalysisResult(null)} className="text-slate-500 hover:text-slate-300">
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto max-h-[500px] prose prose-invert prose-sm max-w-none">
-                 <div className="whitespace-pre-wrap font-light leading-relaxed text-slate-300">
-                   {analysisResult}
-                 </div>
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>
